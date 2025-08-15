@@ -1,0 +1,102 @@
+name: DbaC Deploy
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - main
+
+    # paths:
+    #   - 'versions.tf'
+    #   - 'provider.tf'
+    #   - 'tfvars/wsl.tfvars'
+    #   - 'entrypoint.tf'
+    #   - 'modules/**'
+    #   - .github/workflows/dbac-deploy.yaml
+
+  # workflow_run:
+  #   workflows: ["Generate terraform docs"]  # Name of the tf-docs.yaml workflow
+  #   types:
+  #     - completed
+  #   branches:
+  #     - main
+
+env:
+  # Set the default postgresql user admin password:
+  TF_VAR_postgresql_default_password: ${{ secrets.POSTGRES_USER_DEFAULT_PASSWORD }}
+
+jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: 'write'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref:  ${{ github.event.pull_request.head.ref }} # Use the PR branch for checkout
+
+    - name: Render terraform docs inside the README.md and push changes back to PR branch
+      uses: terraform-docs/gh-actions@v1.4.1
+      with:
+        working-dir: .
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+
+  dbac_deploy:
+    name: 'dbac deploy'
+    runs-on: DbaC
+    needs: [docs]
+
+    defaults:
+      run:
+        working-directory: './'
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: 'actions/checkout@v4'
+
+    # Install Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # Use the appropriate version of Node.js
+          
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: "Setup Terraform"
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.9.0"
+    
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: "Terraform Format"
+      id: fmt
+      run: terraform fmt
+      continue-on-error: false
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: "Terraform Initialize"
+      id: init
+      run: |
+        terraform init  -backend-config="backends/wsl.hcl" -input=false
+      continue-on-error: false
+
+    # Generates an execution plan for Terraform
+    - name: "Terraform Plan"
+      id: plan
+      run: terraform plan  -var-file tfvars/wsl.tfvars -refresh=true -input=false -lock=false  -no-color
+      continue-on-error: false
+  
+    - name: "Terraform Apply"
+      id: apply
+      if: steps.plan.outcome == 'success'
+      run: terraform apply  -var-file tfvars/wsl.tfvars -input=false -lock=false -auto-approve -no-color
