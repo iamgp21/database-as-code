@@ -16,6 +16,7 @@ on:
       - 'tfvars/wsl.tfvars'
       - 'entrypoint.tf'
       - 'modules/**'
+      - .github/workflows/dbac-deploy.yaml
   
 env:
   # Set the default postgresql user admin password:
