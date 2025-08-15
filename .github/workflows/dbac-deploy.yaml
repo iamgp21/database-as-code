@@ -1,0 +1,78 @@
+name: DbaC Deploy
+
+on:
+  workflow_dispatch:
+
+  workflow_run:
+    workflows: ["Generate terraform docs"]  # Name of the tf-docs.yaml workflow
+    types:
+      - completed
+    branches:
+      - dev
+
+    paths:
+      - 'versions.tf'
+      - 'provider.tf'
+      - 'tfvars/wsl.tfvars'
+      - 'entrypoint.tf'
+      - 'modules/**'
+  
+env:
+  # Set the default postgresql user admin password:
+  TF_VAR_postgresql_default_password: ${{ secrets.POSTGRES_USER_DEFAULT_PASSWORD }}
+
+jobs:    
+  dbac_deploy:
+    name: 'dbac deploy'
+    runs-on: DbaC
+    defaults:
+      run:
+        working-directory: './'
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: 'actions/checkout@v4'
+
+    # Install Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # Use the appropriate version of Node.js
+          
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: "Setup Terraform"
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.9.0"
+    
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: "Terraform Format"
+      id: fmt
+      run: terraform fmt
+      continue-on-error: false
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: "Terraform Initialize"
+      id: init
+      run: |
+        terraform init  -backend-config="backends/wsl.hcl" -input=false
+
+    # Generates an execution plan for Terraform
+    - name: "Terraform Plan"
+      id: plan
+      run: terraform plan  -var-file tfvars/wsl.tfvars -refresh=true -input=false -lock=false  -no-color
+
+    # Exit when plan failes
+    - name: "Terraform Plan Status"
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
+  
+    - name: "Terraform Apply"
+      id: apply
+      if: github.event_name == 'push'
+      run: terraform apply  -var-file tfvars/wsl.tfvars -input=false -lock=false -auto-approve -no-color
