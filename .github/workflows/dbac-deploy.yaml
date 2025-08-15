@@ -3,13 +3,10 @@ name: DbaC Deploy
 on:
   workflow_dispatch:
 
-  workflow_run:
-    workflows: ["Generate terraform docs"]  # Name of the tf-docs.yaml workflow
-    types:
-      - completed
+  pull_request:
     branches:
       - main
-
+      
     # paths:
     #   - 'versions.tf'
     #   - 'provider.tf'
@@ -17,15 +14,44 @@ on:
     #   - 'entrypoint.tf'
     #   - 'modules/**'
     #   - .github/workflows/dbac-deploy.yaml
-  
+
+  # workflow_run:
+  #   workflows: ["Generate terraform docs"]  # Name of the tf-docs.yaml workflow
+  #   types:
+  #     - completed
+  #   branches:
+  #     - main
+
 env:
   # Set the default postgresql user admin password:
   TF_VAR_postgresql_default_password: ${{ secrets.POSTGRES_USER_DEFAULT_PASSWORD }}
 
-jobs:    
+jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: 'write'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref:  ${{ github.event.pull_request.head.ref }} # Use the PR branch for checkout
+
+    - name: Render terraform docs inside the README.md and push changes back to PR branch
+      uses: terraform-docs/gh-actions@v1.4.1
+      with:
+        working-dir: .
+        output-file: README.md
+        output-method: inject
+        git-push: "true"
+
   dbac_deploy:
     name: 'dbac deploy'
     runs-on: DbaC
+    needs: [docs]
+
     defaults:
       run:
         working-directory: './'
