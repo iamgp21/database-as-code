@@ -33,7 +33,7 @@ jobs:
     - name: run kics Scan
       uses: Checkmarx/kics-github-action@v2.1.13
       with:
-        path: '.github/workflows/'
+        path: 'entrypoint.tf,versions.tf,provider.tf,tfvars/wsl.tfvars,modules'
         ignore_on_exit: results #dont fail on results (overwrite default behaviour fails)
         output_path: 'infra_scan_results' # when provided with a directory on output_path it will generate the specified reports file named 'results.{extension}'  
         output_formats: 'json,sarif'
