@@ -33,10 +33,9 @@ jobs:
     - name: run kics Scan
       uses: Checkmarx/kics-github-action@v2.1.13
       with:
-        path: './'
+        path: '.github/workflows/'
         ignore_on_exit: results #dont fail on results (overwrite default behaviour fails)
-        output_path: 'infra_scan_results' # when provided with a directory on output_path it will generate the specified reports file named 'results.{extension}'
-        platform_type: terraform
+        output_path: 'infra_scan_results' # when provided with a directory on output_path it will generate the specified reports file named 'results.{extension}'  
         output_formats: 'json,sarif'
     
     - name: Upload SARIF file
@@ -94,7 +93,6 @@ jobs:
             - 'entrypoint.tf'
             - 'modules/**'
             - .github/workflows/dbac-deploy.yaml
-        continue-on-error: false
 
     # Install Node.js
     - name: Setup Node.js
