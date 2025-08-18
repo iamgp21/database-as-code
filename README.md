@@ -1,5 +1,11 @@
 # database-as-code
 
+Repo to Manage PostgreSql database as Code using Terraform and Github Actions.
+
+## HIGH LEVEL WORKFLOW DIAGRAM:
+
+![DBaC_HLD](./drawio/DBaC.png)
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
