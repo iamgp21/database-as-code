@@ -7,21 +7,6 @@ on:
     branches:
       - main
 
-    # paths:
-    #   - 'versions.tf'
-    #   - 'provider.tf'
-    #   - 'tfvars/wsl.tfvars'
-    #   - 'entrypoint.tf'
-    #   - 'modules/**'
-    #   - .github/workflows/dbac-deploy.yaml
-
-  # workflow_run:
-  #   workflows: ["Generate terraform docs"]  # Name of the tf-docs.yaml workflow
-  #   types:
-  #     - completed
-  #   branches:
-  #     - main
-
 env:
   # Set the default postgresql user admin password:
   TF_VAR_postgresql_default_password: ${{ secrets.POSTGRES_USER_DEFAULT_PASSWORD }}
@@ -48,7 +33,6 @@ jobs:
         git-push: "true"
 
   dbac_deploy:
-    name: 'dbac deploy'
     runs-on: DbaC
     needs: [docs]
 
@@ -59,11 +43,26 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+      pull-requests: 'read'
 
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
       uses: 'actions/checkout@v4'
+
+    - name: Detect changes
+      uses: dorny/paths-filter@v3
+      id: detect-changes
+      with:
+        filters: |
+          terraform:
+            - 'versions.tf'
+            - 'provider.tf'
+            - 'tfvars/wsl.tfvars'
+            - 'entrypoint.tf'
+            - 'modules/**'
+            - .github/workflows/dbac-deploy.yaml
+        continue-on-error: false
 
     # Install Node.js
     - name: Setup Node.js
@@ -85,6 +84,7 @@ jobs:
     
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: "Terraform Initialize"
+      if: steps.detect-changes.outputs.terraform == 'true'
       id: init
       run: |
         terraform init  -backend-config="backends/wsl.hcl" -input=false
