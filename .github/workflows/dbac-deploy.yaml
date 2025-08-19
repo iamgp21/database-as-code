@@ -25,21 +25,21 @@ jobs:
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
-      uses: 'actions/checkout@v4' 
+      uses: 'actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955' 
 
     - name: Make Infra Scan Directory
       run: mkdir -p infra_scan_results
     
     - name: run kics Scan
-      uses: Checkmarx/kics-github-action@v2.1.13
+      uses: Checkmarx/kics-github-action@71454548efb714daa457caae25c01d64cc0be9d2
       with:
-        path: 'entrypoint.tf,versions.tf,provider.tf,tfvars/wsl.tfvars,modules'
+        path: 'entrypoint.tf,versions.tf,provider.tf,tfvars/wsl.tfvars,modules,.github/workflows/'
         ignore_on_exit: results #dont fail on results (overwrite default behaviour fails)
         output_path: 'infra_scan_results' # when provided with a directory on output_path it will generate the specified reports file named 'results.{extension}'  
         output_formats: 'json,sarif'
     
     - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@96f518a34f7a870018057716cc4d7a5c014bd61c
       with:
         sarif_file: infra_scan_results/results.sarif
 
@@ -51,12 +51,12 @@ jobs:
       contents: 'write'
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: 'actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955'
       with:
         ref:  ${{ github.event.pull_request.head.ref }} # Use the PR branch for checkout
 
     - name: Render terraform docs inside the README.md and push changes back to PR branch
-      uses: terraform-docs/gh-actions@v1.4.1
+      uses: terraform-docs/gh-actions@6de6da0cefcc6b4b7a5cbea4d79d97060733093c
       with:
         working-dir: .
         output-file: README.md
@@ -73,16 +73,15 @@ jobs:
 
     permissions:
       contents: 'read'
-      id-token: 'write'
       pull-requests: 'read'
 
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
-      uses: 'actions/checkout@v4'
+      uses: 'actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955'
 
     - name: Detect changes
-      uses: dorny/paths-filter@v3
+      uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
       id: detect-changes
       with:
         filters: |
@@ -96,13 +95,13 @@ jobs:
 
     # Install Node.js
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: '20' # Use the appropriate version of Node.js
           
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: "Setup Terraform"
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
       with:
         terraform_version: "1.9.0"
     
