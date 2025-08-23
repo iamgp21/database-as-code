@@ -27,6 +27,7 @@ jobs:
 
   infra_scan:
     name: 'Infra Scan'
+    needs: [secrets_scan]
     runs-on: ubuntu-latest
 
     permissions:
@@ -77,7 +78,7 @@ jobs:
 
   dbac_deploy:
     runs-on: DbaC
-    needs: [infra_scan, docs]
+    needs: [docs]
 
     defaults:
       run:
