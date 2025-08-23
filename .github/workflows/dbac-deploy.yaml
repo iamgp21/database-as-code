@@ -13,8 +13,21 @@ env:
 
 jobs:
 
+  secrets_scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_NOTIFY_USER_LIST: '@iamgp21'
+
   infra_scan:
     name: 'Infra Scan'
+    needs: [secrets_scan]
     runs-on: ubuntu-latest
 
     permissions:
@@ -65,7 +78,7 @@ jobs:
 
   dbac_deploy:
     runs-on: DbaC
-    needs: [infra_scan, docs]
+    needs: [docs]
 
     defaults:
       run:
